@@ -132,3 +132,77 @@ exports.getPortfolio = async (req, res) => {
     res.status(500).json({ message: "Server Error" });
   }
 };
+const { getLivePrice } = require("../services/stockService");
+
+/**
+ * @desc Get Portfolio Summary (Live P/L)
+ * @route GET /api/portfolio/summary
+ * @access Private
+ */
+exports.getPortfolioSummary = async (req, res) => {
+  try {
+    const portfolio = await Portfolio.findOne({ user: req.user._id });
+
+    if (!portfolio || portfolio.holdings.length === 0) {
+      return res.status(200).json({
+        totalInvestment: 0,
+        currentValue: 0,
+        totalProfitLoss: 0,
+        percentageReturn: 0,
+        holdings: [],
+      });
+    }
+
+    let totalInvestment = 0;
+    let currentValue = 0;
+
+    const updatedHoldings = [];
+
+    for (const stock of portfolio.holdings) {
+  let livePrice;
+
+  try {
+    livePrice = await getLivePrice(stock.symbol);
+  } catch (err) {
+    console.log("Skipping invalid stock:", stock.symbol);
+    continue; // 🔥 skip this stock
+  }
+
+  const investment = stock.quantity * stock.averagePrice;
+  const currentStockValue = stock.quantity * livePrice;
+  const profitLoss = currentStockValue - investment;
+
+  totalInvestment += investment;
+  currentValue += currentStockValue;
+
+  updatedHoldings.push({
+    symbol: stock.symbol,
+    quantity: stock.quantity,
+    averagePrice: stock.averagePrice,
+    currentPrice: livePrice,
+    investment,
+    currentValue: currentStockValue,
+    profitLoss,
+  });
+}
+
+    const totalProfitLoss = currentValue - totalInvestment;
+
+    const percentageReturn =
+      totalInvestment > 0
+        ? (totalProfitLoss / totalInvestment) * 100
+        : 0;
+
+    res.status(200).json({
+      totalInvestment,
+      currentValue,
+      totalProfitLoss,
+      percentageReturn,
+      holdings: updatedHoldings,
+    });
+
+  } catch (error) {
+    console.error("SUMMARY ERROR:", error.message);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
