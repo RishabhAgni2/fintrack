@@ -25,7 +25,7 @@ The application integrates a live stock market API to fetch real-time prices and
 ![Login Page](screenshots/Loginpage.png)
 ### Dashboard
 ![Dashboard](screenshots/dashboard.png)
-![Dashboard](screenshots/dashboardholdings)
+![Dashboard](screenshots/dashboardholdings.png)
 ### Portfolio Analytics
 ![Chart](screenshots/chart.png)
 ## Tech Stack
