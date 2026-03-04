@@ -1,0 +1,90 @@
+/* Full page background */
+.auth-page {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0b1220;
+  font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Card container */
+.auth-card {
+  width: 380px;
+  padding: 40px;
+  background: #111c2d;
+  border-radius: 16px;
+  border: 1px solid #1f2937;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+/* Title */
+.auth-title {
+  text-align: center;
+  font-size: 26px;
+  font-weight: 600;
+  margin-bottom: 30px;
+  color: white;
+}
+
+/* Form group */
+.auth-group {
+  margin-bottom: 20px;
+}
+
+/* Label */
+.auth-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+/* Input */
+.auth-input {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid #1f2937;
+  background: #0f172a;
+  color: white;
+  outline: none;
+}
+
+.auth-input:focus {
+  border-color: #2563eb;
+}
+
+/* Button */
+.auth-button {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.auth-button:hover {
+  background: #1d4ed8;
+}
+
+/* Bottom text */
+.auth-footer {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 14px;
+  color: #9ca3af;
+}
+
+.auth-link {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.auth-link:hover {
+  text-decoration: underline;
+}
