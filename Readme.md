@@ -5,16 +5,6 @@ It allows users to virtually buy and sell stocks, track portfolio performance in
 
 The goal of this project was to understand how modern portfolio tracking platforms work and implement a scalable full-stack architecture using real market data and secure authentication.
 
----
-
-## Project Description
-
-FinTrack provides a clean dashboard where users can manage a virtual stock portfolio and monitor performance metrics such as total investment, current value, profit/loss, and percentage returns.
-
-The application integrates a live stock market API to fetch real-time prices and uses server-side caching to optimize API usage. The frontend focuses on a modern dashboard UI with charts and analytics, while the backend handles authentication, portfolio calculations, and API integration.
-
----
-
 ## Features
 
 * Secure user authentication using JWT
