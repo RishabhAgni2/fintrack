@@ -1,10 +1,10 @@
 const Portfolio = require("../models/Portfolio");
 const Transaction = require("../models/Transaction");
+const { getLivePrice } = require("../services/stockService");
 
 /**
- * @desc Add Stock (BUY)
+ * @desc Buy Stock
  * @route POST /api/portfolio/buy
- * @access Private
  */
 exports.buyStock = async (req, res) => {
   try {
@@ -13,14 +13,16 @@ exports.buyStock = async (req, res) => {
     if (!symbol || !quantity || !price) {
       return res.status(400).json({ message: "All fields are required" });
     }
+    if (quantity <= 0 || !Number.isInteger(Number(quantity))) {
+      return res.status(400).json({ message: "Quantity must be a positive whole number" });
+    }
+    if (price <= 0) {
+      return res.status(400).json({ message: "Price must be positive" });
+    }
 
     let portfolio = await Portfolio.findOne({ user: req.user._id });
-
     if (!portfolio) {
-      portfolio = await Portfolio.create({
-        user: req.user._id,
-        holdings: [],
-      });
+      portfolio = await Portfolio.create({ user: req.user._id, holdings: [] });
     }
 
     const existingStock = portfolio.holdings.find(
@@ -29,10 +31,7 @@ exports.buyStock = async (req, res) => {
 
     if (existingStock) {
       const totalQuantity = existingStock.quantity + quantity;
-      const totalCost =
-        existingStock.averagePrice * existingStock.quantity +
-        price * quantity;
-
+      const totalCost = existingStock.averagePrice * existingStock.quantity + price * quantity;
       existingStock.quantity = totalQuantity;
       existingStock.averagePrice = totalCost / totalQuantity;
     } else {
@@ -47,7 +46,7 @@ exports.buyStock = async (req, res) => {
 
     await Transaction.create({
       user: req.user._id,
-      symbol,
+      symbol: symbol.toUpperCase(),
       type: "BUY",
       quantity,
       price,
@@ -65,11 +64,17 @@ exports.buyStock = async (req, res) => {
 /**
  * @desc Sell Stock
  * @route POST /api/portfolio/sell
- * @access Private
  */
 exports.sellStock = async (req, res) => {
   try {
     const { symbol, quantity, price } = req.body;
+
+    if (!symbol || !quantity || !price) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+    if (quantity <= 0 || !Number.isInteger(Number(quantity))) {
+      return res.status(400).json({ message: "Quantity must be a positive whole number" });
+    }
 
     const portfolio = await Portfolio.findOne({ user: req.user._id });
 
@@ -81,8 +86,14 @@ exports.sellStock = async (req, res) => {
       (stock) => stock.symbol === symbol.toUpperCase()
     );
 
-    if (!existingStock || existingStock.quantity < quantity) {
-      return res.status(400).json({ message: "Insufficient shares" });
+    if (!existingStock) {
+      return res.status(400).json({ message: `You don't own any ${symbol.toUpperCase()} shares` });
+    }
+
+    if (existingStock.quantity < quantity) {
+      return res.status(400).json({
+        message: `Insufficient shares. You own ${existingStock.quantity} share(s) of ${symbol.toUpperCase()}`
+      });
     }
 
     existingStock.quantity -= quantity;
@@ -97,7 +108,7 @@ exports.sellStock = async (req, res) => {
 
     await Transaction.create({
       user: req.user._id,
-      symbol,
+      symbol: symbol.toUpperCase(),
       type: "SELL",
       quantity,
       price,
@@ -113,31 +124,26 @@ exports.sellStock = async (req, res) => {
 
 
 /**
- * @desc Get Portfolio
+ * @desc Get Portfolio Holdings
  * @route GET /api/portfolio
- * @access Private
  */
 exports.getPortfolio = async (req, res) => {
   try {
     const portfolio = await Portfolio.findOne({ user: req.user._id });
-
     if (!portfolio) {
       return res.status(200).json({ holdings: [] });
     }
-
     res.status(200).json(portfolio);
-
   } catch (error) {
     console.error("PORTFOLIO ERROR:", error.message);
     res.status(500).json({ message: "Server Error" });
   }
 };
-const { getLivePrice } = require("../services/stockService");
+
 
 /**
- * @desc Get Portfolio Summary (Live P/L)
+ * @desc Get Portfolio Summary with Live P/L
  * @route GET /api/portfolio/summary
- * @access Private
  */
 exports.getPortfolioSummary = async (req, res) => {
   try {
@@ -155,43 +161,39 @@ exports.getPortfolioSummary = async (req, res) => {
 
     let totalInvestment = 0;
     let currentValue = 0;
-
     const updatedHoldings = [];
 
     for (const stock of portfolio.holdings) {
-  let livePrice;
+      let livePrice;
+      try {
+        livePrice = await getLivePrice(stock.symbol);
+      } catch {
+        console.log("Skipping invalid stock:", stock.symbol);
+        continue;
+      }
 
-  try {
-    livePrice = await getLivePrice(stock.symbol);
-  } catch (err) {
-    console.log("Skipping invalid stock:", stock.symbol);
-    continue; // 🔥 skip this stock
-  }
+      const investment = stock.quantity * stock.averagePrice;
+      const currentStockValue = stock.quantity * livePrice;
+      const profitLoss = currentStockValue - investment;
 
-  const investment = stock.quantity * stock.averagePrice;
-  const currentStockValue = stock.quantity * livePrice;
-  const profitLoss = currentStockValue - investment;
+      totalInvestment += investment;
+      currentValue += currentStockValue;
 
-  totalInvestment += investment;
-  currentValue += currentStockValue;
-
-  updatedHoldings.push({
-    symbol: stock.symbol,
-    quantity: stock.quantity,
-    averagePrice: stock.averagePrice,
-    currentPrice: livePrice,
-    investment,
-    currentValue: currentStockValue,
-    profitLoss,
-  });
-}
+      updatedHoldings.push({
+        symbol: stock.symbol,
+        quantity: stock.quantity,
+        averagePrice: stock.averagePrice,
+        currentPrice: livePrice,
+        investment,
+        currentValue: currentStockValue,
+        profitLoss,
+      });
+    }
 
     const totalProfitLoss = currentValue - totalInvestment;
-
-    const percentageReturn =
-      totalInvestment > 0
-        ? (totalProfitLoss / totalInvestment) * 100
-        : 0;
+    const percentageReturn = totalInvestment > 0
+      ? (totalProfitLoss / totalInvestment) * 100
+      : 0;
 
     res.status(200).json({
       totalInvestment,
@@ -203,6 +205,50 @@ exports.getPortfolioSummary = async (req, res) => {
 
   } catch (error) {
     console.error("SUMMARY ERROR:", error.message);
+    res.status(500).json({ message: "Server Error" });
+  }
+};
+
+
+/**
+ * @desc Get live price for a single symbol
+ * @route GET /api/portfolio/price/:symbol
+ */
+exports.getLivePriceForSymbol = async (req, res) => {
+  try {
+    const { symbol } = req.params;
+    if (!symbol) {
+      return res.status(400).json({ message: "Symbol is required" });
+    }
+
+    const price = await getLivePrice(symbol.toUpperCase());
+
+    if (!price) {
+      return res.status(404).json({ message: "Price not found for symbol" });
+    }
+
+    res.status(200).json({ symbol: symbol.toUpperCase(), price });
+
+  } catch (error) {
+    console.error("PRICE FETCH ERROR:", error.message);
+    res.status(404).json({ message: "Could not fetch price for this symbol" });
+  }
+};
+
+
+/**
+ * @desc Get all transactions for logged in user
+ * @route GET /api/portfolio/transactions
+ */
+exports.getTransactions = async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ user: req.user._id })
+      .sort({ createdAt: -1 }); // newest first
+
+    res.status(200).json(transactions);
+
+  } catch (error) {
+    console.error("TRANSACTIONS ERROR:", error.message);
     res.status(500).json({ message: "Server Error" });
   }
 };
