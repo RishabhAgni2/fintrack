@@ -3,7 +3,6 @@ import usePortfolio from "../hooks/usePortfolio";
 import SummaryCards from "../components/dashboard/SummaryCards";
 import PortfolioTable from "../components/dashboard/PortfolioTable";
 import ActionButtons from "../components/portfolio/ActionButtons";
-import PortfolioChart from "../components/dashboard/PortfolioChart";
 import AllocationChart from "../components/dashboard/AllocationChart";
 
 const Dashboard = () => {
@@ -12,10 +11,15 @@ const Dashboard = () => {
   if (loading)
     return (
       <Layout>
-        <div className="flex justify-center items-center h-96">
-          <p className="text-lg font-semibold animate-pulse">
-            Loading portfolio...
-          </p>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
+          <div style={{
+            width: '40px', height: '40px', borderRadius: '50%',
+            border: '3px solid rgba(56,139,253,0.15)',
+            borderTopColor: '#388bfd',
+            animation: 'spin 0.8s linear infinite',
+          }} />
+          <p style={{ color: '#4a5a75', fontSize: '14px' }}>Loading portfolio...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </Layout>
     );
@@ -23,7 +27,7 @@ const Dashboard = () => {
   if (error)
     return (
       <Layout>
-        <div className="text-center text-red-500 mt-10">
+        <div style={{ textAlign: 'center', color: '#f87171', marginTop: '60px', fontSize: '15px' }}>
           {error}
         </div>
       </Layout>
@@ -31,46 +35,36 @@ const Dashboard = () => {
 
   const hasHoldings = data?.holdings?.length > 0;
 
-  // Prepare chart data safely
   const allocationData =
     data?.holdings?.map((stock) => ({
       symbol: stock.symbol,
       value: stock.currentValue,
     })) || [];
 
-  const performanceData = [
-    { name: "Investment", value: data?.totalInvestment || 0 },
-    { name: "Current", value: data?.currentValue || 0 },
-  ];
-
   return (
     <Layout>
-      <div className="space-y-8">
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
-        {/* Action Buttons */}
         <ActionButtons refresh={refresh} />
-
-        {/* Summary Cards */}
         <SummaryCards summary={data} />
 
         {!hasHoldings ? (
-          <div className="bg-white p-10 rounded-xl shadow text-center">
-            <h2 className="text-xl font-semibold mb-2">
+          <div style={{
+            background: '#0a1628', borderRadius: '20px',
+            border: '1px solid rgba(56,139,253,0.1)',
+            padding: '60px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+            <h2 style={{ color: 'white', fontFamily: "'Syne', sans-serif", margin: '0 0 8px', fontSize: '20px' }}>
               No Investments Yet
             </h2>
-            <p className="text-gray-500">
+            <p style={{ color: '#4a5a75', margin: 0, fontSize: '14px' }}>
               Buy your first stock to start tracking performance.
             </p>
           </div>
         ) : (
           <>
-            {/* Charts */}
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-10">
-               <PortfolioChart data={performanceData} />
-                <AllocationChart data={allocationData} />
-             </div>
-
-            {/* Portfolio Table */}
+            <AllocationChart data={allocationData} />
             <PortfolioTable holdings={data.holdings} />
           </>
         )}

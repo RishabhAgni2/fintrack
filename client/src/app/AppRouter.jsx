@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { useContext } from "react";
 import { useAuth } from "../context/AuthContext";
 
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 import Dashboard from "../pages/Dashboard";
+import Transactions from "../pages/Transactions";
 
 const ProtectedRoute = ({ children }) => {
   const { user } = useAuth();
@@ -17,33 +17,19 @@ const AppRouter = () => {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Default Route */}
-        <Route
-          path="/"
-          element={
-            user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
-          }
-        />
-
+        <Route path="/" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/dashboard" element={
+          <ProtectedRoute><Dashboard /></ProtectedRoute>
+        } />
 
-        {/* Catch-all route */}
-        <Route
-          path="*"
-          element={
-            user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />
-          }
-        />
+        <Route path="/transactions" element={
+          <ProtectedRoute><Transactions /></ProtectedRoute>
+        } />
+
+        <Route path="*" element={user ? <Navigate to="/dashboard" /> : <Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   );
