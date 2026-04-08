@@ -20,7 +20,9 @@ const generateToken = (id) => {
  */
 exports.registerUser = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const name = typeof req.body.name === "string" ? req.body.name.trim() : "";
+    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+    const { password } = req.body;
 
     // Validate input
     if (!name || !email || !password) {
@@ -30,7 +32,7 @@ exports.registerUser = async (req, res) => {
     }
 
     // Check if user already exists
-    const userExists = await User.findOne({ email });
+    const userExists = await User.exists({ email });
 
     if (userExists) {
       return res.status(400).json({
@@ -69,7 +71,14 @@ exports.registerUser = async (req, res) => {
  */
 exports.loginUser = async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
+
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "Email and password are required",
+      });
+    }
 
     // Check if user exists
     const user = await User.findOne({ email });

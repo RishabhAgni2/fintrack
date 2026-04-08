@@ -159,36 +159,38 @@ exports.getPortfolioSummary = async (req, res) => {
       });
     }
 
-    let totalInvestment = 0;
-    let currentValue = 0;
-    const updatedHoldings = [];
-
-    for (const stock of portfolio.holdings) {
-      let livePrice;
+    const updatedHoldings = await Promise.all(portfolio.holdings.map(async (stock) => {
       try {
-        livePrice = await getLivePrice(stock.symbol);
+        const livePrice = await getLivePrice(stock.symbol);
+        const investment = stock.quantity * stock.averagePrice;
+        const currentStockValue = stock.quantity * livePrice;
+        const profitLoss = currentStockValue - investment;
+
+        return {
+          symbol: stock.symbol,
+          quantity: stock.quantity,
+          averagePrice: stock.averagePrice,
+          currentPrice: livePrice,
+          investment,
+          currentValue: currentStockValue,
+          profitLoss,
+        };
       } catch {
         console.log("Skipping invalid stock:", stock.symbol);
-        continue;
+        return null;
       }
+    }));
 
-      const investment = stock.quantity * stock.averagePrice;
-      const currentStockValue = stock.quantity * livePrice;
-      const profitLoss = currentStockValue - investment;
+    const validHoldings = updatedHoldings.filter(Boolean);
 
-      totalInvestment += investment;
-      currentValue += currentStockValue;
-
-      updatedHoldings.push({
-        symbol: stock.symbol,
-        quantity: stock.quantity,
-        averagePrice: stock.averagePrice,
-        currentPrice: livePrice,
-        investment,
-        currentValue: currentStockValue,
-        profitLoss,
-      });
-    }
+    const totalInvestment = validHoldings.reduce(
+      (total, stock) => total + stock.investment,
+      0
+    );
+    const currentValue = validHoldings.reduce(
+      (total, stock) => total + stock.currentValue,
+      0
+    );
 
     const totalProfitLoss = currentValue - totalInvestment;
     const percentageReturn = totalInvestment > 0
@@ -200,7 +202,7 @@ exports.getPortfolioSummary = async (req, res) => {
       currentValue,
       totalProfitLoss,
       percentageReturn,
-      holdings: updatedHoldings,
+      holdings: validHoldings,
     });
 
   } catch (error) {

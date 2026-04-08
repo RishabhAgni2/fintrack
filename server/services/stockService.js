@@ -17,7 +17,6 @@ exports.getLivePrice = async (symbol) => {
   }
 
   console.log("Fetching from Finnhub:", upperSymbol);
-console.log("Finnhub key:", process.env.FINNHUB_API_KEY);
   try {
     const response = await axios.get(
       `https://finnhub.io/api/v1/quote`,
@@ -26,6 +25,7 @@ console.log("Finnhub key:", process.env.FINNHUB_API_KEY);
           symbol: upperSymbol,
           token: process.env.FINNHUB_API_KEY,
         },
+        timeout: 8000,
       }
     );
 
